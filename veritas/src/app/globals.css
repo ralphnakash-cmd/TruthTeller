@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/*
+  Veritas design tokens.
+  Base: deep ink-slate (not pure black) with a cool ice-blue for interaction.
+  Verdict hues are reserved for verdicts and evidence stance only.
+*/
+@theme {
+  --color-ink: #0d1320;
+  --color-ink-2: #121a2a;
+  --color-panel: #162033;
+  --color-rule: #24314a;
+  --color-rule-soft: #1c2740;
+  --color-fg: #e7eaf1;
+  --color-muted: #8d97ab;
+  --color-faint: #5d6880;
+  --color-ice: #a9c8ff;
+  --color-ice-deep: #6f97e6;
+  --color-true: #43d197;
+  --color-false: #f2646f;
+  --color-unverified: #e9b14d;
+
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-ink);
+  color: var(--color-fg);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* faint ruled-paper grid, like a lab notebook */
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgba(111, 151, 230, 0.12), transparent 60%),
+    linear-gradient(rgba(169, 200, 255, 0.025) 1px, transparent 1px);
+  background-size: auto, 100% 32px;
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(169, 200, 255, 0.28);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ice);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes scan {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.scanline {
+  animation: scan 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
