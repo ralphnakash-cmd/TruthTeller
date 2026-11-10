@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { ClaimDeduplicator } from "../../src/lib/live/claimDeduplicator";
 import { TTLCache } from "../../src/lib/veritas/cache";
 import { assessCheckability } from "../../src/lib/veritas/factCheckabilityClassifier";
-import { AnthropicClient } from "../../src/lib/veritas/llm";
+import { AnthropicClient, OpenRouterClient } from "../../src/lib/veritas/llm";
 import { BraveProvider, TavilyProvider } from "../../src/lib/veritas/providers/webSearchProvider";
 import { WikipediaProvider } from "../../src/lib/veritas/providers/wikipedia";
 import { retrieveEvidence } from "../../src/lib/veritas/evidenceRetriever";
@@ -153,6 +153,45 @@ describe("Anthropic client", () => {
     }) as unknown as typeof fetch;
     const client = new AnthropicClient({ apiKey: "bad", timeoutMs: 1000, retries: 2, fetchImpl });
     await assert.rejects(client.callStructured({ tier: "smart", system: "s", user: "u", tool, validate, maxTokens: 10 }), /401/);
+    assert.equal(n, 1);
+  });
+});
+
+describe("OpenRouter client", () => {
+  const tool = { name: "t", description: "d", input_schema: { type: "object" } };
+  const validate = s.object({ answer: s.enumOf(["A", "B"] as const) });
+  const toolCall = (id: string, args: string) => ({ choices: [{ message: { role: "assistant", content: null, tool_calls: [{ id, type: "function", function: { name: "t", arguments: args } }] } }] });
+
+  it("forces the function, retries on 429, and re-asks once on schema errors", async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    const headers: Array<Record<string, string>> = [];
+    const responses = [new Response("rate limited", { status: 429 }), jsonResponse(toolCall("c1", '{"answer":"C"}')), jsonResponse(toolCall("c2", '{"answer":"b"}'))];
+    const fetchImpl = (async (u: string, init: RequestInit) => {
+      assert.equal(u, "https://openrouter.ai/api/v1/chat/completions");
+      bodies.push(JSON.parse(String(init.body)));
+      headers.push(init.headers as Record<string, string>);
+      return responses.shift()!;
+    }) as unknown as typeof fetch;
+    const client = new OpenRouterClient({ apiKey: "k", timeoutMs: 1000, retries: 2, fetchImpl });
+    const out = await client.callStructured({ tier: "smart", system: "s", user: "u", tool, validate, maxTokens: 100 });
+    assert.equal(out.data.answer, "B");
+    assert.equal(headers[0].authorization, "Bearer k");
+    assert.deepEqual(bodies[0].tool_choice, { type: "function", function: { name: "t" } });
+    assert.equal(bodies[0].model, "anthropic/claude-sonnet-5.5");
+    assert.equal(bodies.length, 3);
+    const lastMsgs = bodies[2].messages as Array<{ role: string; content: unknown }>;
+    assert.equal(lastMsgs.at(-1)!.role, "tool");
+    assert.match(JSON.stringify(lastMsgs.at(-1)), /Schema validation failed/);
+  });
+
+  it("does not retry auth errors", async () => {
+    let n = 0;
+    const fetchImpl = (async () => {
+      n++;
+      return new Response("invalid key", { status: 401 });
+    }) as unknown as typeof fetch;
+    const client = new OpenRouterClient({ apiKey: "bad", timeoutMs: 1000, retries: 2, fetchImpl });
+    await assert.rejects(client.callStructured({ tier: "fast", system: "s", user: "u", tool, validate, maxTokens: 10 }), /401/);
     assert.equal(n, 1);
   });
 });

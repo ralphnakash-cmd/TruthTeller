@@ -31,7 +31,7 @@ function Mark() {
 function StatusDots({ status }: { status: ServiceStatus | null }) {
   if (!status) return null;
   const items: Array<{ label: string; on: boolean; title: string }> = [
-    { label: "Claude", on: status.llm.configured, title: status.llm.configured ? `Reasoning: ${status.llm.smartModel}` : "ANTHROPIC_API_KEY missing" },
+    { label: status.llm.provider === "openrouter" ? "OpenRouter" : "Claude", on: status.llm.configured, title: status.llm.configured ? `Reasoning: ${status.llm.smartModel}` : "OPENROUTER_API_KEY missing" },
     {
       label: status.webSearch === "brave" ? "Brave" : "Tavily",
       on: Boolean(status.webSearch),
@@ -107,7 +107,7 @@ export function VeritasApp() {
                   <p className="font-medium">Add API keys to start verifying</p>
                   <p className="text-muted">
                     Copy <code className="font-mono text-xs">.env.example</code> to <code className="font-mono text-xs">.env.local</code>, add{" "}
-                    <code className="font-mono text-xs">ANTHROPIC_API_KEY</code> and <code className="font-mono text-xs">TAVILY_API_KEY</code>, then restart{" "}
+                    <code className="font-mono text-xs">OPENROUTER_API_KEY</code> and <code className="font-mono text-xs">TAVILY_API_KEY</code>, then restart{" "}
                     <code className="font-mono text-xs">npm run dev</code>. To click around without keys, set <code className="font-mono text-xs">VERITAS_DEMO_MODE=true</code>.
                   </p>
                 </div>

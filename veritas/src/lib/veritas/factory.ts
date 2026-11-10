@@ -1,14 +1,14 @@
 import { TTLCache } from "./cache";
 import { loadEngineConfig } from "./config";
 import type { EngineDeps } from "./engine";
-import { AnthropicClient } from "./llm";
+import { AnthropicClient, OpenRouterClient } from "./llm";
 import { GoogleFactCheckProvider } from "./providers/googleFactCheck";
 import { BraveProvider, type SearchProvider, TavilyProvider } from "./providers/webSearchProvider";
 import { WikipediaProvider } from "./providers/wikipedia";
 import type { ClaimResult, RawSearchResult } from "./types";
 
 export interface ServiceStatus {
-  llm: { configured: boolean; provider: "anthropic"; fastModel: string; smartModel: string };
+  llm: { configured: boolean; provider: "openrouter" | "anthropic"; fastModel: string; smartModel: string };
   webSearch: "tavily" | "brave" | null;
   wikipedia: boolean;
   factCheck: boolean;
@@ -18,12 +18,14 @@ export interface ServiceStatus {
 const env = (k: string) => (process.env[k] ?? "").trim();
 
 export function serviceStatus(): ServiceStatus {
+  // OpenRouter wins when its key is set; ANTHROPIC_API_KEY remains a direct fallback.
+  const openrouter = Boolean(env("OPENROUTER_API_KEY")) || !env("ANTHROPIC_API_KEY");
   return {
     llm: {
-      configured: Boolean(env("ANTHROPIC_API_KEY")),
-      provider: "anthropic",
-      fastModel: env("VERITAS_FAST_MODEL") || "claude-haiku-5-5",
-      smartModel: env("VERITAS_SMART_MODEL") || "claude-sonnet-5-5",
+      configured: Boolean(env("OPENROUTER_API_KEY") || env("ANTHROPIC_API_KEY")),
+      provider: openrouter ? "openrouter" : "anthropic",
+      fastModel: env("VERITAS_FAST_MODEL") || (openrouter ? "anthropic/claude-haiku-5.5" : "claude-haiku-5-5"),
+      smartModel: env("VERITAS_SMART_MODEL") || (openrouter ? "anthropic/claude-sonnet-5.5" : "claude-sonnet-5-5"),
     },
     webSearch: env("TAVILY_API_KEY") ? "tavily" : env("BRAVE_SEARCH_API_KEY") ? "brave" : null,
     wikipedia: env("VERITAS_DISABLE_WIKIPEDIA") !== "true",
@@ -59,14 +61,26 @@ export function createEngineDeps(): EngineDeps | null {
   if (status.factCheck) providers.push(new GoogleFactCheckProvider({ apiKey: env("GOOGLE_FACTCHECK_API_KEY"), timeoutMs: config.searchTimeoutMs }));
 
   return {
-    llm: new AnthropicClient({
-      apiKey: env("ANTHROPIC_API_KEY"),
-      baseUrl: env("VERITAS_ANTHROPIC_BASE_URL") || undefined,
-      fastModel: status.llm.fastModel,
-      smartModel: status.llm.smartModel,
-      timeoutMs: config.llmTimeoutMs,
-      retries: config.llmRetries,
-    }),
+    llm:
+      status.llm.provider === "openrouter"
+        ? new OpenRouterClient({
+            apiKey: env("OPENROUTER_API_KEY"),
+            baseUrl: env("VERITAS_OPENROUTER_BASE_URL") || undefined,
+            fastModel: status.llm.fastModel,
+            smartModel: status.llm.smartModel,
+            siteUrl: env("VERITAS_SITE_URL") || undefined,
+            appName: "Veritas",
+            timeoutMs: config.llmTimeoutMs,
+            retries: config.llmRetries,
+          })
+        : new AnthropicClient({
+            apiKey: env("ANTHROPIC_API_KEY"),
+            baseUrl: env("VERITAS_ANTHROPIC_BASE_URL") || undefined,
+            fastModel: status.llm.fastModel,
+            smartModel: status.llm.smartModel,
+            timeoutMs: config.llmTimeoutMs,
+            retries: config.llmRetries,
+          }),
     providers,
     config,
     resultCache: g.__veritasCaches!.results,

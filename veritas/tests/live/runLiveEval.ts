@@ -1,5 +1,5 @@
 /**
- * LIVE evaluation — makes real Anthropic + search API calls (costs credits).
+ * LIVE evaluation — makes real OpenRouter + search API calls (costs credits).
  *   npm run eval:live
  * Reports correct verdicts, incorrect verdicts (the dangerous kind) and
  * abstentions separately. A handful of cases is NOT evidence of general accuracy.
@@ -19,7 +19,7 @@ const TIMEZONE = process.env.VERITAS_EVAL_TIMEZONE || Intl.DateTimeFormat().reso
 async function main() {
   const deps = createEngineDeps();
   if (!deps) {
-    console.error("ANTHROPIC_API_KEY is not set — live evaluation needs real credentials (see .env.example).");
+    console.error("OPENROUTER_API_KEY is not set — live evaluation needs real credentials (see .env.example).");
     process.exit(1);
   }
   const status = serviceStatus();

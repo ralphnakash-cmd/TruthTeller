@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   const deps = createEngineDeps();
   if (!deps) {
     return json(
-      { code: "NOT_CONFIGURED", message: "Live verification needs ANTHROPIC_API_KEY (and ideally TAVILY_API_KEY) in .env.local. See README → Setup." },
+      { code: "NOT_CONFIGURED", message: "Live verification needs OPENROUTER_API_KEY (and ideally TAVILY_API_KEY) in .env.local. See README → Setup." },
       503,
     );
   }

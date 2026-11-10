@@ -59,7 +59,7 @@ export function demoReport(input: string, timezone?: string): VerificationReport
     evidenceStrength: sample ? "MODERATE" : "NONE",
     explanation:
       sample?.explanation ??
-      `Demo mode only replays two sample claims. Add ANTHROPIC_API_KEY and TAVILY_API_KEY to .env.local for live verification. (Today in ${tz}: ${localParts(now, tz).long}.)`,
+      `Demo mode only replays two sample claims. Add OPENROUTER_API_KEY and TAVILY_API_KEY to .env.local for live verification. (Today in ${tz}: ${localParts(now, tz).long}.)`,
     gateNote: null,
     modelProposedVerdict: null,
     ambiguityNote: null,

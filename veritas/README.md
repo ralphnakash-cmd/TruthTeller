@@ -20,13 +20,14 @@ npm run dev                     # http://localhost:3000
 
 | Variable | Needed? | What it does |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | **Required** for live mode | Claude extracts claims (Haiku 5.5) and evaluates evidence (Sonnet 5.5). |
+| `OPENROUTER_API_KEY` | **Required** for live mode | Claude via OpenRouter extracts claims (`anthropic/claude-haiku-5.5`) and evaluates evidence (`anthropic/claude-sonnet-5.5`). Override with `VERITAS_FAST_MODEL` / `VERITAS_SMART_MODEL`. |
+| `ANTHROPIC_API_KEY` | Optional | Direct Anthropic API instead; used only if `OPENROUTER_API_KEY` is empty. |
 | `TAVILY_API_KEY` | Strongly recommended | Live web search. Without it, evidence comes from Wikipedia only and many claims end UNVERIFIED. |
 | `BRAVE_SEARCH_API_KEY` | Optional | Alternative web search, used only when no Tavily key is set. |
 | `GOOGLE_FACTCHECK_API_KEY` | Optional | Adds published fact-checks (ClaimReview data). |
 | `VERITAS_DEMO_MODE=true` | Optional | Click through the UI with **no keys**. Every result is stamped DEMO, has no links, and says no search ran. It is never used as a silent fallback. |
 
-The header shows which sources are configured (green dot = active). If the Anthropic key is missing, the app tells you instead of pretending to verify.
+The header shows which sources are configured (green dot = active). If no LLM key is configured, the app tells you instead of pretending to verify.
 
 ```bash
 npm test            # 49 deterministic unit tests (mocked APIs, no keys needed)
@@ -119,7 +120,7 @@ UNVERIFIED always carries a reason code: `OPINION`, `PREDICTION`, `QUESTION`, `A
 
 - All API keys are read server-side only (`src/lib/veritas/factory.ts`); the browser never sees them. `/api/health` exposes booleans and model names only.
 - Input is length-limited (600 chars, body 8 KB) and rate-limited per client (12/min by default).
-- **No arbitrary URL fetching:** the server only calls fixed API hosts (Anthropic, Tavily/Brave, Wikipedia, Google). Result URLs are canonicalized, restricted to http(s), and only rendered as `rel="noopener noreferrer nofollow"` links.
+- **No arbitrary URL fetching:** the server only calls fixed API hosts (OpenRouter/Anthropic, Tavily/Brave, Wikipedia, Google). Result URLs are canonicalized, restricted to http(s), and only rendered as `rel="noopener noreferrer nofollow"` links.
 - Retrieved web text is treated as untrusted data: HTML/control characters are stripped, evidence-delimiter tags are neutralized, and the model is instructed to ignore instructions inside sources. Even if it didn't, the gate requires verifiable quotes from multiple independent sources.
 - Server logs record a hash, claim count and verdicts — never the text you typed.
 - Verification history lives only in your browser's localStorage and can be deleted per item or cleared.
